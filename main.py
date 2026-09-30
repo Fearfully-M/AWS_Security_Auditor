@@ -24,7 +24,7 @@ def main():
         print("No AWS credentials are loaded. Please run credentials with 'aws configure'")
         sys.exit()
 
-    except ClientError:
+    except ClientError: # if client doesn't provide appropriate
         print("Permission Error. Read Permissions required to evaluate system vulnerabilities")
         sys.exit()
     
