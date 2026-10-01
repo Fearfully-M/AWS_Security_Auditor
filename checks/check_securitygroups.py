@@ -37,12 +37,27 @@ def check_securitygroups(ec2_client):
 
             # append to dictionary each type of vulnerability
             if source_vulnerability and fromPort_vulnerability:
-                findings.append({'domain': 'SecurityGroup', 'resource_id': f"{securitygroup['GroupId']} ({securitygroup['GroupName']})", 'severity':'Critical','threat_type':'Source Vulnerability and FromPort Vulnerability','explanation': f"FromPort {IpPermissions['FromPort']} is publicy exposed due to CidrIp being set to '0.0.0.0/0'",'recommendation':''})
+                findings.append({'domain': 'SecurityGroup',
+                                'resource_id': f"{securitygroup['GroupId']} ({securitygroup['GroupName']})", 
+                                'severity':'Critical',
+                                'threat_type':'Source Vulnerability and FromPort Vulnerability',
+                                'explanation': f"FromPort {IpPermissions['FromPort']} is publicy exposed due to CidrIp being set to '0.0.0.0/0'",
+                                'recommendation':''})
 
             if source_vulnerability and toPort_vulnerability:
-                findings.append({'domain': 'SecurityGroup', 'resource_id': f"{securitygroup['GroupId']} ({securitygroup['GroupName']})",'severity':'Critical','threat_type':'Source Vulnerability and ToPort Vulnerability','explanation': f"ToPort {IpPermissions['ToPort']} is publicy exposed due to CidrIp being set to '0.0.0.0/0'",'recommendation':''})
+                findings.append({'domain': 'SecurityGroup',
+                                'resource_id': f"{securitygroup['GroupId']} ({securitygroup['GroupName']})",
+                                'severity':'Critical',
+                                'threat_type':'Source Vulnerability and ToPort Vulnerability',
+                                'explanation': f"ToPort {IpPermissions['ToPort']} is publicy exposed due to CidrIp being set to '0.0.0.0/0'",
+                                'recommendation':''})
                 
             if fromPort_vulnerability and not source_vulnerability:
-                findings.append({'domain': 'SecurityGroup', 'resource_id': f"{securitygroup['GroupId']} ({securitygroup['GroupName']})",'severity':'Low','threat_type':'Unorthodox FromPort Selected','explanation': f"FromPort {IpPermissions['FromPort']} being used is nonstandard.'",'recommendation':''})
+                findings.append({'domain': 'SecurityGroup',
+                                'resource_id': f"{securitygroup['GroupId']} ({securitygroup['GroupName']})",
+                                'severity':'Low',
+                                'threat_type':'Unorthodox FromPort Selected',
+                                'explanation': f"FromPort {IpPermissions['FromPort']} being used is nonstandard.'",
+                                'recommendation':''})
 
     return findings
