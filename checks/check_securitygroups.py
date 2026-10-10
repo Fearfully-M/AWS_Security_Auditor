@@ -4,12 +4,12 @@ def check_securitygroups(ec2_client):
     findings = [] # store vulnerability findings
     try:
         securitygroups = ec2_client.describe_security_groups()
-    except ClientError:
+    except ClientError as e:
         findings.append({
-            'domain': 'NA',
+            'domain': 'SecurityGroup',
             'resource_id': 'NA',
             'severity': 'NA',
-            'threat_type': 'NA',
+            'threat_type': f"{e.response['Error']['Code']}: {e.response['Error']['Message']}",
             'explanation': 'EC2 check failed due to insufficient permissions',
             'recommendation': 'NA',
         })

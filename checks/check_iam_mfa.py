@@ -11,12 +11,12 @@ def check_iam_mfa(iam_client):
         users = iam_client.list_users()
 
     # if it fails due to lack of IAM permissions
-    except ClientError: 
+    except ClientError as e: 
         findings.append({
-                'domain': 'NA',
+                'domain': 'IAM',
                 'resource_id': 'NA',
                 'severity': 'NA',
-                'threat_type': 'NA',
+                'threat_type': f"{e.response['Error']['Code']}: {e.response['Error']['Message']}",
                 'explanation': 'IAM check failed due to insufficient permissions',
                 'recommendation': 'NA',
             })
