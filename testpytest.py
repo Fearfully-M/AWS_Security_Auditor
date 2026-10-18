@@ -15,7 +15,18 @@ class FakeS3Client:
 
         if "bpa_error" in bucket_data:
             raise ClientError(
-                {"Error": {"Code": bucket_data["bpa_error"], "Message": "boom"}},
+                {"Error": {"Code": bucket_data["bpa_error"], "Message": "Error"}},
+                "GetPublicAccessBlock",
+            )
+
+        elif "bpa_denied" in bucket_data:
+            raise ClientError(
+                {
+                    "Error": {
+                        "Code": bucket_data["bpa_denied"],
+                        "Message": "Permission Not Granted",
+                    }
+                },
                 "GetPublicAccessBlock",
             )
 
@@ -30,6 +41,20 @@ class FakeS3Client:
                     "Error": {
                         "Code": bucket_data["policy_error"],
                         "Message": "policy_error",
+                    }
+                },
+                "GetBucketPolicy",
+            )
+
+        elif "raw_policy" in bucket_data:
+            return {"Policy": bucket_data["raw_policy"]}
+
+        elif "policy" not in bucket_data:
+            raise ClientError(
+                {
+                    "Error": {
+                        "Code": "NoSuchBucketPolicy",
+                        "Message": "The bucket policy does not exist",
                     }
                 },
                 "GetBucketPolicy",
@@ -157,3 +182,192 @@ def test_bucket_with_low_severity():
 
     explanation = findings[0]["explanation"]
     assert "enabled" in explanation
+
+
+def test_no_such_bucket_policy():
+    client = FakeS3Client(
+        {
+            "bucket-a": {
+                "bpa": {
+                    "BlockPublicAcls": True,
+                    "IgnorePublicAcls": True,
+                    "BlockPublicPolicy": True,
+                    "RestrictPublicBuckets": True,
+                },
+            }
+        }
+    )
+
+    findings = check_s3publicaccess(client)
+
+    assert len(findings) == 0
+
+
+def test_bucket_policy_access_denied():
+    client = FakeS3Client(
+        {
+            "bucket-a": {
+                "bpa": {
+                    "BlockPublicAcls": True,
+                    "IgnorePublicAcls": True,
+                    "BlockPublicPolicy": True,
+                    "RestrictPublicBuckets": True,
+                },
+                "policy_error": "AccessDenied",
+            }
+        }
+    )
+
+    findings = check_s3publicaccess(client)
+
+    assert len(findings) == 1
+
+    assert findings[0]["resource_id"] == "bucket-a"
+    assert findings[0]["severity"] == "Unknown"
+    assert findings[0]["threat_type"] == "Permission Not Granted"
+
+
+def test_bucket_bad_json():
+    client = FakeS3Client(
+        {
+            "bucket-a": {
+                "bpa": {
+                    "BlockPublicAcls": True,
+                    "IgnorePublicAcls": True,
+                    "BlockPublicPolicy": True,
+                    "RestrictPublicBuckets": False,
+                },
+                "raw_policy": "{definitely not valid json, bro",
+            }
+        }
+    )
+
+    findings = check_s3publicaccess(client)
+
+    assert len(findings) == 1
+
+    assert findings[0]["resource_id"] == "bucket-a"
+    assert findings[0]["severity"] == "Unknown"
+    assert findings[0]["threat_type"] == "Malformed Policy Document"
+
+
+def test_access_denied_on_BPA_lookup():
+    client = FakeS3Client(
+        {
+            "bucket-a": {
+                "bpa": {
+                    "BlockPublicAcls": True,
+                    "IgnorePublicAcls": True,
+                    "BlockPublicPolicy": True,
+                    "RestrictPublicBuckets": True,
+                },
+                "bpa_denied": "AccessDenied",
+            }
+        }
+    )
+
+    findings = check_s3publicaccess(client)
+
+    assert len(findings) == 1
+
+    assert findings[0]["resource_id"] == "bucket-a"
+    assert findings[0]["severity"] == "Unknown"
+    assert findings[0]["threat_type"] == "Permission Not Granted"
+
+
+def test_BPA_enabled_no_public_policy():
+    client = FakeS3Client(
+        {
+            "bucket-a": {
+                "bpa": {
+                    "BlockPublicAcls": True,
+                    "IgnorePublicAcls": True,
+                    "BlockPublicPolicy": True,
+                    "RestrictPublicBuckets": True,
+                },
+                "policy": {
+                    "Version": "2013-12-20",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                            "Action": "s3:GetObject",
+                            "Resource": "arn:aws:s3:::bucket-a/*",
+                        }
+                    ],
+                },
+            }
+        }
+    )
+
+    findings = check_s3publicaccess(client)
+
+    assert len(findings) == 0
+
+
+def test_BPA_disabled_no_public_policy():
+    client = FakeS3Client(
+        {
+            "bucket-a": {
+                "bpa": {
+                    "BlockPublicAcls": True,
+                    "IgnorePublicAcls": True,
+                    "BlockPublicPolicy": True,
+                    "RestrictPublicBuckets": False,
+                },
+                "policy": {
+                    "Version": "2013-12-20",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                            "Action": "s3:GetObject",
+                            "Resource": "arn:aws:s3:::bucket-a/*",
+                        }
+                    ],
+                },
+            }
+        }
+    )
+
+    findings = check_s3publicaccess(client)
+
+    assert len(findings) == 1
+
+    assert findings[0]["resource_id"] == "bucket-a"
+    assert findings[0]["severity"] == "Medium"
+    assert findings[0]["threat_type"] == "BPA is disabled"
+
+
+def test_BPA_disabled_deny_policy():
+    client = FakeS3Client(
+        {
+            "bucket-a": {
+                "bpa": {
+                    "BlockPublicAcls": True,
+                    "IgnorePublicAcls": True,
+                    "BlockPublicPolicy": True,
+                    "RestrictPublicBuckets": False,
+                },
+                "policy": {
+                    "Version": "2013-12-20",
+                    "Statement": [
+                        {
+                            "Effect": "Deny",
+                            "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                            "Action": "s3:GetObject",
+                            "Resource": "arn:aws:s3:::bucket-a/*",
+                        }
+                    ],
+                },
+            }
+        }
+    )
+
+    findings = check_s3publicaccess(client)
+
+    assert len(findings) == 1
+
+    assert findings[0]["resource_id"] == "bucket-a"
+    assert findings[0]["severity"] == "Medium"
+    assert findings[0]["threat_type"] == "BPA disabled but policy is set to Deny"
