@@ -73,7 +73,25 @@ def check_s3publicaccess(s3_client):
             policy = s3_client.get_bucket_policy(Bucket=bucket_name)
         except ClientError as e:  # if no bucket policy
             if e.response["Error"]["Code"] == "NoSuchBucketPolicy":
-                continue
+                if not bpa_enabled:
+                    # No bucket policy was found and BPA is disabled
+                    severity = "Medium"
+                    bpa_status = "disabled"
+                    findings.append(
+                        {
+                            "domain": "S3",
+                            "resource_id": bucket_name,
+                            "severity": severity,
+                            "threat_type": "Block Public Access Disabled",
+                            "explanation": f"No bucket policy. Block Public Access is {bpa_status}.",
+                            "recommendation": "",
+                        }
+                    )
+                    continue
+                # BPA is enabled, no bucket policy found.
+                elif bpa_enabled:
+                    continue
+
             elif e.response["Error"]["Code"] == "AccessDenied":
                 findings.append(
                     {
@@ -123,180 +141,179 @@ def check_s3publicaccess(s3_client):
         if isinstance(statements, dict):
             statements = [statements]
 
-        for bucket in buckets["Buckets"]:
-            print(bucket)
-            # set to false, initially not publicly exposed
-            public_allow_found = False
+        # set to false, initially not publicly exposed
+        public_allow_found = False
 
-            # check each statement
-            for statement in statements:
-                if statement.get("Effect") == "Allow":
-                    principal = statement.get("Principal")
+        # check each statement
+        for statement in statements:
+            if statement.get("Effect") == "Allow":
+                principal = statement.get("Principal")
 
-                    is_public = principal == "*" or (
-                        isinstance(principal, dict) and principal.get("AWS") == "*"
-                    )
-
-                    # determine truly if the bucket is public with principal/policy and bpa_enabled
-                    if is_public:
-                        public_allow_found = True
-
-            # exposed to public and BPA is not enabled
-            if public_allow_found and not bpa_enabled:
-                # BPA is disabled but effect is set to 'Deny'
-                severity = "High"
-                bpa_status = "disabled"
-                findings.append(
-                    {
-                        "domain": "S3",
-                        "resource_id": bucket_name,
-                        "severity": severity,
-                        "threat_type": "Publicly Accessible S3 Bucket",
-                        "explanation": f"Bucket has a private policy. Block Public Access is {bpa_status}.",
-                        "recommendation": "",
-                    }
-                )
-            # exposed to public BUT BPA is enabled
-            elif public_allow_found and bpa_enabled:
-                # BPA is disabled but effect is set to 'Deny'
-                severity = "Low"
-                bpa_status = "enabled"
-                findings.append(
-                    {
-                        "domain": "S3",
-                        "resource_id": bucket_name,
-                        "severity": severity,
-                        "threat_type": "Public Bucket Policy Found",
-                        "explanation": f"Bucket has a private policy. Block Public Access is {bpa_status}.",
-                        "recommendation": "",
-                    }
-                )
-            # not exposed to public but  BPA is not enabled
-            elif not public_allow_found and not bpa_enabled:
-                # BPA is disabled but effect is set to 'Deny'
-                severity = "Medium"
-                bpa_status = "disabled"
-                findings.append(
-                    {
-                        "domain": "S3",
-                        "resource_id": bucket_name,
-                        "severity": severity,
-                        "threat_type": "BPA disabled but policy is set to Deny",
-                        "explanation": f"Bucket has a private policy. Block Public Access is {bpa_status}.",
-                        "recommendation": "",
-                    }
+                is_public = principal == "*" or (
+                    isinstance(principal, dict) and principal.get("AWS") == "*"
                 )
 
-            # no findings to report
-            elif not public_allow_found and bpa_enabled:
-                break
+                # determine truly if the bucket is public with principal/policy and bpa_enabled
+                if is_public:
+                    public_allow_found = True
 
+        # exposed to public and BPA is not enabled
+        if public_allow_found and not bpa_enabled:
+            # BPA is disabled but effect is set to 'Deny'
+            severity = "High"
+            bpa_status = "disabled"
+            findings.append(
+                {
+                    "domain": "S3",
+                    "resource_id": bucket_name,
+                    "severity": severity,
+                    "threat_type": "Publicly Accessible S3 Bucket",
+                    "explanation": f"Bucket has a public policy. Block Public Access is {bpa_status}.",
+                    "recommendation": "",
+                }
+            )
+        # exposed to public BUT BPA is enabled
+        elif public_allow_found and bpa_enabled:
+            # BPA is disabled but effect is set to 'Deny'
+            severity = "Low"
+            bpa_status = "enabled"
+            findings.append(
+                {
+                    "domain": "S3",
+                    "resource_id": bucket_name,
+                    "severity": severity,
+                    "threat_type": "Public Bucket Policy Found",
+                    "explanation": f"Bucket has a public policy but Block Public Access is {bpa_status}.",
+                    "recommendation": "",
+                }
+            )
+        # not exposed to public but  BPA is not enabled
+        elif not public_allow_found and not bpa_enabled:
+            # BPA is disabled but effect is set to 'Deny'
+            severity = "Medium"
+            bpa_status = "disabled"
+            findings.append(
+                {
+                    "domain": "S3",
+                    "resource_id": bucket_name,
+                    "severity": severity,
+                    "threat_type": "Block Public Access Disabled",
+                    "explanation": f"Bucket has a private policy. Block Public Access is {bpa_status}.",
+                    "recommendation": "",
+                }
+            )
+
+    print(findings)
     return findings
 
 
 class FakeS3Client:
-    def __init__(
-        self,
-        block_public_acls=True,
-        ignore_public_acls=True,
-        block_public_policy=True,
-        restrict_public_buckets=True,
-    ):
-        self.block_public_acls = block_public_acls
-        self.ignore_public_acls = ignore_public_acls
-        self.block_public_policy = block_public_policy
-        self.restrict_public_buckets = restrict_public_buckets
+    def __init__(self, buckets):
+        self.buckets = buckets
 
     def list_buckets(self):
-        return {
-            "Buckets": [
-                {
-                    "Name": "string",
-                    "CreationDate": datetime(2015, 1, 1),
-                    "BucketRegion": "string",
-                    "BucketArn": "string",
-                },
-            ],
-            "Owner": {"DisplayName": "string", "ID": "string"},
-            "ContinuationToken": "string",
-            "Prefix": "string",
-        }
-
-    def get_bucket_policy(self, Bucket):
-        # Return valid JSON stringified data
-        sample_policy = {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": "*",
-                    "Action": "s3:GetObject",
-                    "Resource": f"arn:aws:s3:::{Bucket}/*",
-                }
-            ],
-        }
-        return {"Policy": json.dumps(sample_policy)}
+        return {"Buckets": [{"Name": bucket_name} for bucket_name in self.buckets]}
 
     def get_public_access_block(self, Bucket):
-        return {
-            "PublicAccessBlockConfiguration": {
-                "BlockPublicAcls": self.block_public_acls,
-                "IgnorePublicAcls": self.ignore_public_acls,
-                "BlockPublicPolicy": self.block_public_policy,
-                "RestrictPublicBuckets": self.restrict_public_buckets,
-            }
-        }
+        bucket_data = self.buckets[Bucket]
 
-
-class FakeS3ClientWithFailure:
-    def list_buckets(self):
-        return {"Buckets": [{"Name": "good-bucket"}, {"Name": "bad-bucket"}]}
-
-    def get_public_access_block(self, Bucket):
-        if Bucket == "bad-bucket":
+        if "bpa_error" in bucket_data:
             raise ClientError(
-                {"Error": {"Code": "InternalError", "Message": "boom"}},
+                {"Error": {"Code": bucket_data["bpa_error"], "Message": "Error"}},
                 "GetPublicAccessBlock",
             )
-        elif Bucket == "good-bucket":
-            return {
-                "PublicAccessBlockConfiguration": {
-                    "BlockPublicAcls": True,
-                    "IgnorePublicAcls": True,
-                    "BlockPublicPolicy": True,
-                    "RestrictPublicBuckets": False,
-                }
-            }
+
+        elif "bpa_denied" in bucket_data:
+            raise ClientError(
+                {
+                    "Error": {
+                        "Code": bucket_data["bpa_denied"],
+                        "Message": "Permission Not Granted",
+                    }
+                },
+                "GetPublicAccessBlock",
+            )
+
+        return {"PublicAccessBlockConfiguration": bucket_data["bpa"]}
 
     def get_bucket_policy(self, Bucket):
-        if Bucket == "bad-bucket":
-            # Return valid JSON stringified data
-            sample_policy = {
-                "Version": "2012-10-17",
+        bucket_data = self.buckets[Bucket]
+
+        if "policy_error" in bucket_data:
+            raise ClientError(
+                {
+                    "Error": {
+                        "Code": bucket_data["policy_error"],
+                        "Message": "policy_error",
+                    }
+                },
+                "GetBucketPolicy",
+            )
+
+        elif "raw_policy" in bucket_data:
+            return {"Policy": bucket_data["raw_policy"]}
+
+        elif "policy" not in bucket_data:
+            raise ClientError(
+                {
+                    "Error": {
+                        "Code": "NoSuchBucketPolicy",
+                        "Message": "The bucket policy does not exist",
+                    }
+                },
+                "GetBucketPolicy",
+            )
+
+        return {"Policy": json.dumps(bucket_data["policy"])}
+
+
+fake_client = FakeS3Client(
+    {
+        "bucket-a": {
+            "bpa": {
+                "BlockPublicAcls": True,
+                "IgnorePublicAcls": True,
+                "BlockPublicPolicy": True,
+                "RestrictPublicBuckets": False,
+            },
+            "policy": {
+                "Version": "2013-12-20",
                 "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": "1234",
+                        "Action": "s3:GetObject",
+                        "Resource": "arn:aws:s3:::bucket-a/*",
+                    },
                     {
                         "Effect": "Allow",
                         "Principal": "*",
                         "Action": "s3:GetObject",
-                        "Resource": f"arn:aws:s3:::{Bucket}/*",
-                    }
+                        "Resource": "arn:aws:s3:::bucket-a/*",
+                    },
                 ],
-            }
-        elif Bucket == "good-bucket":
-            # Return valid JSON stringified data
-            sample_policy = {
-                "Version": "2013-07-13",
+            },
+        },
+        "bucket-b": {
+            "bpa": {
+                "BlockPublicAcls": True,
+                "IgnorePublicAcls": True,
+                "BlockPublicPolicy": True,
+                "RestrictPublicBuckets": False,
+            },
+            "policy": {
+                "Version": "2013-12-20",
                 "Statement": [
                     {
-                        "Effect": "Allow",
+                        "Effect": "Deny",
                         "Principal": "*",
-                        "Action": "s3:ListObject",
-                        "Resource": f"arn:aws:s3:::{Bucket}/*",
+                        "Action": "s3:GetObject",
+                        "Resource": "arn:aws:s3:::bucket-a/*",
                     }
                 ],
-            }
-        return {"Policy": json.dumps(sample_policy)}
+            },
+        },
+    }
+)
 
-
-s3_client = FakeS3Client()
-check_s3publicaccess(s3_client)
+check_s3publicaccess(fake_client)
