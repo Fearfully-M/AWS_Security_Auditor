@@ -187,7 +187,7 @@ def check_s3publicaccess(s3_client):
                     "recommendation": "",
                 }
             )
-        # not exposed to public but  BPA is not enabled
+        # not exposed to public but BPA is disabled
         elif not public_allow_found and not bpa_enabled:
             # BPA is disabled but effect is set to 'Deny'
             severity = "Medium"
