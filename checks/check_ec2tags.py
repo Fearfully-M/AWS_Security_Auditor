@@ -87,4 +87,4 @@ client = FakeEC2Client([
     }
 ])
 
-print(check_ec2tags(client))
+check_ec2tags(client)
