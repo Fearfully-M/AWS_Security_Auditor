@@ -3,7 +3,6 @@ from datetime import datetime  # used for testing fake data
 from urllib.parse import unquote
 import json
 
-
 # checks if user is using MFA
 def check_iam_mfa(iam_client):
     findings = []
@@ -79,9 +78,7 @@ def get_user_severity(iam_client, username):
         # get calls - needed to get to the encoded doc
         policy_meta = iam_client.get_policy(PolicyArn=policyarn)
         version_id = policy_meta["Policy"]["DefaultVersionId"]
-        version = iam_client.get_policy_version(
-            PolicyArn=policyarn, VersionId=version_id
-        )
+        version = iam_client.get_policy_version(PolicyArn=policyarn, VersionId=version_id)
 
         # get encoded doc, decode and then load into JSON
         encoded_doc = version["PolicyVersion"]["Document"]
@@ -118,7 +115,7 @@ def get_user_severity(iam_client, username):
 
 # determines severity of action statement based on verb type
 def get_action_tier(actions):
-
+    
     read_verbs = ("Get", "List", "Describe")
     mutate_verbs = (
         "Put",
@@ -138,12 +135,12 @@ def get_action_tier(actions):
     for action in actions:
         action_verb = action.split(":")[1]  # split by ':' and return only the action
         service = action.split(":")[0]  # check the type of service
-        if action_verb.startswith(read_verbs):
+        if service.startswith(privilege_escalation):
+            severity = 3
+        elif action_verb.startswith(read_verbs):
             severity = 1
         elif action_verb.startswith(mutate_verbs):
             severity = 2
-        elif service.startswith(privilege_escalation):
-            severity = 3
         else:
             unknown_actions.append(action)  # if unknown action, collect it here
             continue  # do not append a severity value for the unknown action
