@@ -59,32 +59,32 @@ def check_ec2tags(ec2_client):
         return findings
 
 
-# used for testing
-class FakeEC2Client:
-    def __init__(self, instances):
-        self.instances = instances
+# # used for testing
+# class FakeEC2Client:
+#     def __init__(self, instances):
+#         self.instances = instances
 
-    def describe_instances(self):
-           return {"Reservations": [
-               {
-                   "Instances": self.instances
-               }
-           ]}
+#     def describe_instances(self):
+#            return {"Reservations": [
+#                {
+#                    "Instances": self.instances
+#                }
+#            ]}
 
 
-client = FakeEC2Client([
-    {
-        "InstanceId": "i-good",
-        "Tags": [
-            {"Key": "Name", "Value": "web-server"}
-        ]
-    },
-    {
-        "InstanceId": "i-bad",
-        "Tags": [
-            {"Key": "Environment", "Value": "prod"}
-        ]
-    }
-])
+# client = FakeEC2Client([
+#     {
+#         "InstanceId": "i-good",
+#         "Tags": [
+#             {"Key": "Name", "Value": "web-server"}
+#         ]
+#     },
+#     {
+#         "InstanceId": "i-bad",
+#         "Tags": [
+#             {"Key": "Environment", "Value": "prod"}
+#         ]
+#     }
+# ])
 
-check_ec2tags(client)
+# check_ec2tags(client)
