@@ -18,6 +18,7 @@ def generate_csv_report(findings, report_file=None):
 
         report_file = output_dir / filename
 
+    # write results to csv file
     with open(report_file, "w", newline="") as file:
         writer = csv.DictWriter(
             file,
@@ -45,7 +46,7 @@ def generate_html_report(findings, report_file=None):
 
         report_file = output_dir / filename
 
-    # write the html
+    # write the findings to be put later into html
     html_rows = ""
     for finding in findings:
         if finding['severity'] == 'High':
@@ -70,7 +71,7 @@ def generate_html_report(findings, report_file=None):
             </tbody>
         """
 
-
+    # write the html, stylize, and input earlier findings that were converted to html
     html = f"""
      <!DOCTYPE html>
     <html>
@@ -155,7 +156,7 @@ def generate_html_report(findings, report_file=None):
     with open(report_file, "w") as file:
         file.write(html)
 
-
+# function that outputs the results to screen in a much prettier and easier to read way
 def pretty_CLI_output(findings):
     console = Console()
     table = Table(title="Security Findings Report")
