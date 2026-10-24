@@ -1,10 +1,9 @@
 from rich import print
 from report_generator import generate_csv_report, generate_html_report
 import csv
-from datetime import datetime as dt
-from pathlib import Path
+from html import escape
 
-def test_write_file(tmp_path):
+def test_write_file_csv(tmp_path):
     output_path = tmp_path / "report.csv"
 
     findings = [
@@ -64,3 +63,50 @@ def test_write_file(tmp_path):
     assert rows[3]["domain"] == "S3"
     assert rows[3]["resource_id"] == "bucket-a"
     assert rows[3]["severity"] == "Medium"
+
+def test_write_file_html(tmp_path):
+    findings = [
+     {
+          "domain": "SecurityGroup",
+          "resource_id": "sg-123",
+          "severity": "High",
+          "threat_type": "Port Vulnerability",
+          # Include an unsafe-looking value with HTML tags to test escape()
+          "explanation": (
+              "A port is publicly exposed by user <admin> with <b>bad</b> config"
+          ),
+          "recommendation": "You need to fix it",
+      }
+  ]
+    
+    output_path = tmp_path / "report.html"
+
+    # generate the HTML report
+    generate_html_report(findings, output_path)
+
+    html_content = output_path.read_text()
+
+    # verify standard html structures
+    assert "<html>" in html_content
+    assert "<table>" in html_content
+
+    # verify actual content is in the html file
+    assert "<th>Domain</th>" in html_content
+    assert "<th>Resource ID</th>" in html_content
+    assert "<td>SecurityGroup</td>" in html_content
+    assert "<td>High</td>" in html_content
+    assert "<td>sg-123</td>" in html_content
+    assert "SecurityGroup" in html_content
+    assert "High" in html_content
+
+    # raw rags shouldn't be in the html file
+    assert "<admin>" not in html_content
+    assert "<b>bad</b>" not in html_content
+
+    # escaped entities should be in the html file
+    assert "&lt;admin&gt;" in html_content
+    assert "&lt;b&gt;bad&lt;/b&gt;" in html_content 
+
+
+
+    

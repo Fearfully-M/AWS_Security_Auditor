@@ -53,7 +53,7 @@ def main():
     # augment_findings = add_ai_recommendations(all_findings)
 
     # generate findings and save as CSV/HTML
-    generate_csv_report(all_findings)
+    # generate_csv_report(all_findings)
     # generate_security_report(augment_findings, file_format)
 
 # concatenate all findings and return them
