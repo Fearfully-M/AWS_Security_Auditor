@@ -7,15 +7,16 @@ from datetime import datetime as dt
 from pathlib import Path
 
 # takes security auditor findings and saves them into a CSV
-def generate_csv_report(findings):
-    output_dir = Path("reports/")
-    output_dir.mkdir(parents=True, exist_ok=True)
+def generate_csv_report(findings, report_file=None):
+    if report_file is None:
+        output_dir = Path("reports/")
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-    filename = dt.now().strftime(f"SecurityAuditorResults_%Y-%m-%d_%H-%M-%S.csv")
+        filename = dt.now().strftime(f"SecurityAuditorResults_%Y-%m-%d_%H-%M-%S.csv")
+
+        report_file = output_dir / filename
     
-    reportFile = output_dir / filename
-
-    with open(reportFile, "w", newline="") as file:
+    with open(report_file, "w", newline="") as file:
         writer = csv.DictWriter(
             file,
             fieldnames=["domain", "resource_id", "severity","threat_type", "explanation", "recommendation"]
@@ -23,7 +24,7 @@ def generate_csv_report(findings):
 
         writer.writeheader()
         writer.writerows(findings)
-        
+
     console = Console()
     table = Table(title="Security Findings Report")
 
@@ -71,6 +72,7 @@ def generate_csv_report(findings):
 def generate_html_report(findings):
     ...
 
+
 concatenated_findings = [
     {
         "domain": "SecurityGroup",
@@ -106,4 +108,4 @@ concatenated_findings = [
     },
 ]
 
-generate_csv_report(concatenated_findings)
+generate_html_report(concatenated_findings)

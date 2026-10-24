@@ -1,7 +1,13 @@
 from rich import print
 from report_generator import generate_csv_report, generate_html_report
+import csv
+from datetime import datetime as dt
+from pathlib import Path
 
-concatenated_findings = [
+def test_write_file(tmp_path):
+    output_path = tmp_path / "report.csv"
+
+    findings = [
     {
         "domain": "SecurityGroup",
         "resource_id": "sg-123-range (ssh-public)",
@@ -36,15 +42,25 @@ concatenated_findings = [
     },
 ]
 
-def test_run_report_generator_csv():
+    generate_csv_report(findings, output_path)
 
-    findings = generate_csv_report(concatenated_findings)
+    with open(output_path, newline="") as file:
+        reader = csv.DictReader(file)
+        rows = list(reader)
 
-    print(findings)
-    assert len(findings) == 1
+    assert len(rows) == 4
+    assert rows[0]["domain"] == "SecurityGroup"
+    assert rows[0]["resource_id"] == "sg-123-range (ssh-public)"
+    assert rows[0]["severity"] == "High"
 
-def test_run_report_generator_html():
-    ...
+    assert rows[1]["domain"] == "EC2"
+    assert rows[1]["resource_id"] == "i-bad"
+    assert rows[1]["severity"] == "Low"
 
-def test_run_report_generator_both():
-    ...
+    assert rows[2]["domain"] == "IAM/MFA"
+    assert rows[2]["resource_id"] == "john.doe"
+    assert rows[2]["severity"] == "Medium"
+
+    assert rows[3]["domain"] == "S3"
+    assert rows[3]["resource_id"] == "bucket-a"
+    assert rows[3]["severity"] == "Medium"
