@@ -1,7 +1,6 @@
 from tests.test_s3publicaccess import FakeS3Client
 from tests.test_iam_mfa import FakeIAMClient
 from botocore.exceptions import ClientError
-from rich import print
 from main import run_audit
 
 # custom FakeEC2Client to handle both ec2 tags and security groups

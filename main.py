@@ -6,6 +6,7 @@ from checks.check_securitygroups import check_securitygroups
 from checks.check_ec2tags import check_ec2tags
 from checks.check_iam_mfa import check_iam_mfa
 from checks.check_s3publicaccess import check_s3publicaccess
+from report_generator import generate_csv_report, generate_html_report
 
 def main():
 
@@ -52,6 +53,7 @@ def main():
     # augment_findings = add_ai_recommendations(all_findings)
 
     # generate findings and save as CSV/HTML
+    generate_csv_report(all_findings)
     # generate_security_report(augment_findings, file_format)
 
 # concatenate all findings and return them
