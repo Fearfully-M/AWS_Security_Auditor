@@ -159,7 +159,7 @@ def generate_html_report(findings, report_file=None):
 # function that outputs the results to screen in a much prettier and easier to read way
 def pretty_CLI_output(findings):
     console = Console()
-    table = Table(title="Security Findings Report")
+    table = Table(title="Security Findings Report", show_lines=True)
 
     # columns
     headers = [
@@ -186,7 +186,7 @@ def pretty_CLI_output(findings):
         elif severity_value == "Low":
             severity_cell = Text(severity_value, style="blue")
         else:
-            severity_cell = Text(severity_value, style="red")
+            severity_cell = Text(severity_value, style="purple")
 
         table.add_row(
             str(row.get("domain", "")),
@@ -198,42 +198,3 @@ def pretty_CLI_output(findings):
         )
 
     console.print(table)
-
-
-concatenated_findings = [
-    {
-        "domain": "SecurityGroup",
-        "resource_id": "sg-123-range (ssh-public)",
-        "severity": "High",
-        "threat_type": "Source Vulnerability and Port Vulnerability",
-        "explanation": "A port is publicy exposed due to CidrIp being set to '0.0.0.0/0'",
-        "recommendation": "",
-    },
-    {
-        "domain": "EC2",
-        "resource_id": "i-bad",
-        "severity": "Low",
-        "threat_type": "Missing EC2 Instance tags",
-        "explanation": "Instance i-bad has no name tag.",
-        "recommendation": "",
-    },
-    {
-        "domain": "IAM/MFA",
-        "resource_id": "john.doe",
-        "severity": "Medium",
-        "threat_type": "MFA Not Enabled",
-        "explanation": "IAM user john.doe does not have anMFA device configured.",
-        "recommendation": "",
-    },
-    {
-        "domain": "S3",
-        "resource_id": "bucket-a",
-        "severity": "Medium",
-        "threat_type": "Block Public Access Disabled",
-        "explanation": "Bucket has a private policy. Block Public Access is disabled.",
-        "recommendation": "",
-    },
-]
-
-
-#generate_html_report(concatenated_findings, report_file=None)

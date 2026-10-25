@@ -1,7 +1,6 @@
 from botocore.exceptions import ClientError
 from checks.check_securitygroups import check_securitygroups
 
-
 class FakeSecurityGroupClient:
     def __init__(self, securitygroups=None, error=None):
         self.securitygroups = securitygroups or []
