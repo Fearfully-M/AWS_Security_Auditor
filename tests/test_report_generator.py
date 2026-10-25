@@ -1,7 +1,5 @@
-from rich import print
 from report_generator import generate_csv_report, generate_html_report
 import csv
-from html import escape
 
 def test_write_file_csv(tmp_path):
     output_path = tmp_path / "report.csv"
@@ -107,6 +105,3 @@ def test_write_file_html(tmp_path):
     assert "&lt;admin&gt;" in html_content
     assert "&lt;b&gt;bad&lt;/b&gt;" in html_content 
 
-
-
-    

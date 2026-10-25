@@ -6,7 +6,9 @@ from checks.check_securitygroups import check_securitygroups
 from checks.check_ec2tags import check_ec2tags
 from checks.check_iam_mfa import check_iam_mfa
 from checks.check_s3publicaccess import check_s3publicaccess
-from report_generator import generate_csv_report, generate_html_report
+from report_generator import generate_csv_report, generate_html_report, pretty_CLI_output
+from add_ai_recommendations import add_ai_recommendations
+import anthropic
 
 def main():
 
@@ -31,11 +33,10 @@ def main():
 
     # call functions for security group, tag, IAM/MFA, and s3 security vulnerability findings
     try:
-        ...
-        # ec2 = boto3.client("ec2")
-        # s3 = boto3.client("s3")
-        # iam = boto3.client("iam")
-        # all_findings = run_audit(ec2,s3,iam)
+        ec2 = boto3.client("ec2")
+        s3 = boto3.client("s3")
+        iam = boto3.client("iam")
+        all_findings = run_audit(ec2,s3,iam)
     except NoCredentialsError:  # if no AWS credentials are found
         print(
             "No AWS credentials are loaded. Please run credentials with 'aws configure'"
@@ -50,11 +51,12 @@ def main():
 
     
     # # enhance findings with AI generated recommendations
-    # augment_findings = add_ai_recommendations(all_findings)
+    if args.ai:
+        all_findings = add_ai_recommendations(all_findings, ai_client)
 
-    # generate findings and save as CSV/HTML
-    # generate_csv_report(all_findings)
-    # generate_security_report(augment_findings, file_format)
+    # # generate findings and save as CSV/HTML
+    generate_security_report(all_findings,file_format)
+
 
 # concatenate all findings and return them
 def run_audit(ec2_client, s3_client, iam_client):
@@ -68,6 +70,20 @@ def run_audit(ec2_client, s3_client, iam_client):
 
     return all_findings
 
+# takes CLI input and determines what file format to generate the report and if to add optional AI recommendations
+def generate_security_report(all_findings, file_format):
+
+    # output results in a nice, readable format to screen
+    pretty_CLI_output(all_findings)
+
+    # print to file formatting specified by user
+    if file_format == 'csv':
+        generate_csv_report(all_findings)
+    elif file_format == 'html':
+        generate_html_report(all_findings)
+    elif file_format == 'both':
+        generate_csv_report(all_findings)
+        generate_html_report(all_findings)
 
 if __name__ == "__main__":
     main()

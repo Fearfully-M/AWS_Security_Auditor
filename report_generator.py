@@ -215,7 +215,7 @@ concatenated_findings = [
         "severity": "Low",
         "threat_type": "Missing EC2 Instance tags",
         "explanation": "Instance i-bad has no name tag.",
-        "recommendation": "NA",
+        "recommendation": "",
     },
     {
         "domain": "IAM/MFA",
@@ -223,7 +223,7 @@ concatenated_findings = [
         "severity": "Medium",
         "threat_type": "MFA Not Enabled",
         "explanation": "IAM user john.doe does not have anMFA device configured.",
-        "recommendation": "Enable MFA for this IAM User",
+        "recommendation": "",
     },
     {
         "domain": "S3",
@@ -236,4 +236,4 @@ concatenated_findings = [
 ]
 
 
-generate_html_report(concatenated_findings, report_file=None)
+#generate_html_report(concatenated_findings, report_file=None)
