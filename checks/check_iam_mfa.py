@@ -33,30 +33,36 @@ def check_iam_mfa(iam_client):
 
         # if it returns an empty list it evaluates to true so no MFA enabled - append to list
         if not mfa_devices["MFADevices"]:
-            severity, unknown_action_list = get_user_severity(iam_client, username)
+            severity, unknown_action_list, severity_reason = get_user_severity(iam_client, username)
             joined_unknown_actions = ", ".join(unknown_action_list)
-            if not unknown_action_list:  # if no unknowns in list
-                findings.append(
-                    {
-                        "domain": "IAM/MFA",
-                        "resource_id": username,
-                        "severity": f"{severity}",
-                        "threat_type": "MFA Not Enabled",
-                        "explanation": f"IAM user {username} does not have an MFA device configured.",
-                        "recommendation": "Enable MFA for this IAM User",
-                    }
-                )
-            else:  # if there are unknowns in the list
-                findings.append(
-                    {
-                        "domain": "IAM/MFA",
-                        "resource_id": username,
-                        "severity": f"{severity}",
-                        "threat_type": "MFA Not Enabled",
-                        "explanation": f"IAM user {username} does not have an MFA device configured. The following unknown actions were found: {joined_unknown_actions}.",
-                        "recommendation": "Enable MFA for this IAM User",
-                    }
-                )
+            
+            # concatenate explanation to only provide the explanation if 'Unknown' so that get_user_severity doesn't literally show 'None' as a reason
+            explanation = f"IAM user {username} does not have an MFA device configured."
+
+            # if there are any unknown actions, add the severity reason and the unknown actions to the explanation
+            if unknown_action_list:
+                explanation += (
+                    f" {severity_reason}. "
+                    f"The following unknown actions were found: "
+                    f"{joined_unknown_actions}."
+                    )
+
+            # unknown for another reason - such as no attached policies
+            elif severity_reason:
+                explanation += f" {severity_reason}."
+
+            # every user without MFA produces a finding 
+            findings.append(
+                {
+                    "domain": "IAM/MFA",
+                    "resource_id": username,
+                    "severity": severity,
+                    "threat_type": "MFA Not Enabled",
+                    "explanation": explanation,
+                    "recommendation": "Enable MFA for this IAM User",
+                }
+        )
+                
     return findings
 
 
@@ -104,13 +110,21 @@ def get_user_severity(iam_client, username):
         # any unknown action forces Unknown severity overall, even if severity_list
         # has values too and if severity_list is ever empty, this branch is
         # guaranteed to have caught it already (every action lands in one list or the other)
-        return "Unknown", unknown_actions_list
+        severity_reason = "Severity is 'Unknown' because one or more IAM actions could not be classified"
+        return "Unknown", unknown_actions_list, severity_reason
+
+    # if user has no MFA AND no managed policies return unknown.
+    # the user could have other mechanisms of permissions outside of what the auditor checks 
+    # so, it is a finding, but it's unknown severity
+    if not severity_list:
+        severity_reason = "Severity is 'Unknown' because no attached managed policies were found to evaluate"
+        return "Unknown", unknown_actions_list, severity_reason
 
     # determine highest severity
     highest_severity = max(severity_list)  # get the highest severity
 
     # convert to string and return the severity level
-    return ["Low", "Medium", "High"][highest_severity - 1], unknown_actions_list
+    return ["Low", "Medium", "High"][highest_severity - 1], unknown_actions_list, None
 
 
 # determines severity of action statement based on verb type

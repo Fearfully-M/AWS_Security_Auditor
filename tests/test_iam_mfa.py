@@ -464,3 +464,62 @@ def test_multiple_users_one_medium_one_high_finding():
     assert findings[1]['resource_id'] == 'sarah.connor'
     assert findings[1]['severity'] == 'Low'
     assert findings[1]['threat_type'] == 'MFA Not Enabled'
+
+def test_mfa_disabled_no_attached_policies_one_finding():
+    mock_users = [
+            {
+                "UserName": "john.doe",
+            },
+        ]
+    
+    mock_mfa_map = {
+            
+        }
+
+    mock_policy_versions_map = {
+        ("arn:aws:iam::123456789012:policy/CustomS3ReadOnly", "v1"): {
+            "PolicyVersion": {
+                "Document": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "s3:GetObject",
+                            "s3:ListBucket",
+                            "s3:PutObject",
+                            "s3:DeleteBucket",
+                            "iam:PutUserPolicy",
+                        ],
+                        "Resource": [
+                            "arn:aws:s3:::my-bucket/*"
+                        ]
+                    }
+                ]
+}
+            }
+        }
+    }
+    mock_policy = {
+        'arn:aws:iam::123456789012:policy/CustomS3ReadOnly': {
+            'Policy': {
+                'PolicyName': 'CustomS3ReadOnly',
+                'Arn': 'arn:aws:iam::123456789012:policy/CustomS3ReadOnly',
+                'DefaultVersionId': 'v1',
+            
+            }
+        }
+        }
+    
+    mock_attached_policies = {
+        'john.doe': [
+        ],
+    }
+
+    client = FakeIAMClient(users=mock_users,mfa_devices_map=mock_mfa_map,attached_policies=mock_attached_policies,policies=mock_policy, policy_versions=mock_policy_versions_map)
+    findings = check_iam_mfa(client)
+
+    assert len(findings) == 1
+    assert findings[0]['resource_id'] == 'john.doe'
+    assert findings[0]['severity'] == 'Unknown'
+    assert findings[0]['threat_type'] == 'MFA Not Enabled'
