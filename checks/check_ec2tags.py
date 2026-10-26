@@ -1,6 +1,4 @@
 from botocore.exceptions import ClientError
-from datetime import datetime  # used for testing fake data
-
 
 def check_ec2tags(ec2_client):
     findings = []

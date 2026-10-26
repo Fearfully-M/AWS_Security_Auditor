@@ -1,5 +1,4 @@
 from botocore.exceptions import ClientError
-from datetime import datetime  # used for testing fake data
 from urllib.parse import unquote
 import json
 

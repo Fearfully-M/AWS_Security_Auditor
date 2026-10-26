@@ -64,7 +64,7 @@ def generate_html_report(findings, report_file=None):
             <tbody>
                 <td>{escape(str(finding["domain"]))}</td>
                 <td>{escape(str(finding["resource_id"]))}</td>
-                <td class ="{severity_class}">{escape(str(finding["severity"]))}</td>
+                <td class = "{severity_class}">{escape(str(finding["severity"]))}</td>
                 <td>{escape(str(finding["threat_type"]))}</td>
                 <td>{escape(str(finding["explanation"]))}</td>
                 <td>{escape(str(finding["recommendation"]))}</td>

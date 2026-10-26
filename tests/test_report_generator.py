@@ -92,7 +92,7 @@ def test_write_file_html(tmp_path):
     assert "<th>Domain</th>" in html_content
     assert "<th>Resource ID</th>" in html_content
     assert "<td>SecurityGroup</td>" in html_content
-    assert "<td>High</td>" in html_content
+    assert '<td class = "severity-high">High</td>' in html_content
     assert "<td>sg-123</td>" in html_content
     assert "SecurityGroup" in html_content
     assert "High" in html_content
