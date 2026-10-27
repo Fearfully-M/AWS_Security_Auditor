@@ -218,6 +218,26 @@ Incorporates least privilege design by only allowing authorized IAM user groups 
 * S3 - ```ListBuckets```, ```GetBucketPublicAccessBlock```, and ```GetBucketPolicy```
 * IAM - ```ListMFADevices```, ```ListUsers```, ```ListAttachedUserPolicies```, ```GetPolicy```, and ```GetPolicyVersion```
 
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Fearfully-M/AWS_Security_Auditor
+```
+
+Navigate into the project directory:
+
+```bash
+cd AWS_Security_Auditor
+```
+
+Install the required dependencies:
+
+```bash
+pip3 install -r requirements.txt
+```
+
 ## Testing
 The security auditor has a full testing suite that tests for many normal use cases, edge cases, and regression tests. Tests such as S3 internal failures, security groups with no FromPort or ToPorts, cumulative report findings have been conducted. 
 
@@ -276,26 +296,6 @@ This project required several architecture and implementation tradeoffs beyond t
 8.  Separation of detection, orchestration, enrichment, and presentation - As the project grew, responsibilities were separated into detection, orchestration, enrichment, and presentation layers so failures and changes could remain localized. Main.py would act as a director while the domains would act as each AWS services respective consultant. Each consultant responsible for the findings and main would call on the report generator and ai recommendations to finalize the findings. And finally presentation/enrichment from beautifying the CLI output and providing CSV and HTML output was also modularized and treated as its own separate problem so that an MVP (minimally viable product) would always be available in case any part of the project had issues
    
 9.  Fail-safe evidence preservation - the auditor saves a timestamped CSV report by default so security findings are preserved even if the user forgets to explicitly request file output - users can opt out with '--no-report' 
-
-## Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/Fearfully-M/AWS_Security_Auditor
-```
-
-Navigate into the project directory:
-
-```bash
-cd AWS_Security_Auditor
-```
-
-Install the required dependencies:
-
-```bash
-pip3 install -r requirements.txt
-```
 
 ## Future Enhancements
 
