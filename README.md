@@ -329,4 +329,4 @@ This project demonstrates:
 
 ## License MIT
 
-Built as a portfolio project to demonstrate practical use of the boto3 Python Library and learning about the AWS ecosystem.
+Built as a portfolio project to demonstrate and practice cloud engineering principles.
