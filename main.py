@@ -15,7 +15,6 @@ from add_ai_recommendations import add_ai_recommendations
 
 
 def main():
-
     # add CLI commands
     parser = argparse.ArgumentParser(
         prog="AWS_Security_Auditor",
